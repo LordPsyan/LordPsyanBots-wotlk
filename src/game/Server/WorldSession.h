@@ -294,7 +294,6 @@ class WorldSession
         void SetSecurity(AccountTypes security) { _security = security; }
         // Players connected without socket are bot
         const std::string GetRemoteAddress() const { return m_Socket ? m_Socket->GetRemoteAddress() : "disconnected/bot"; }
-#endif
         void SetPlayer(Player* plr, uint32 playerGuid);
         uint8 Expansion() const { return m_expansion; }
 
@@ -861,6 +860,9 @@ class WorldSession
         void HandleSetActiveVoiceChannel(WorldPacket& recv_data);
         void HandleSetTaxiBenchmarkOpcode(WorldPacket& recv_data);
 
+#ifdef ENABLE_PLAYERBOTS
+        void HandleBotPackets();
+#endif
         // Guild Bank
         void HandleGuildPermissions(WorldPacket& recv_data);
         void HandleGuildBankMoneyWithdrawn(WorldPacket& recv_data);
@@ -919,9 +921,6 @@ class WorldSession
         void HandleQueryQuestsCompletedOpcode(WorldPacket& recv_data);
         void HandleQuestPOIQueryOpcode(WorldPacket& recv_data);
 
-#ifdef ENABLE_PLAYERBOTS
-        void HandleBotPackets();
-#endif
     private:
         // Additional private opcode handlers
         void HandleComplainMail(WorldPacket& recv_data);

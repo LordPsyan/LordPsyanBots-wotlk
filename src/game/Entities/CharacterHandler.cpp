@@ -41,7 +41,6 @@
 #ifdef ENABLE_PLAYERBOTS
 #include "playerbot.h"
 #include "PlayerbotAIConfig.h"
-#endif
 
 // config option SkipCinematics supported values
 enum CinematicsSkipMode
@@ -221,8 +220,8 @@ class CharacterHandler
         {
             if (!holder) return;
 
-             if (WorldSession* session = sWorld.FindSession(((LoginQueryHolder*)holder)->GetAccountId()))
-                 session->HandlePlayerLogin((LoginQueryHolder*)holder);
+            if (WorldSession* session = sWorld.FindSession(((LoginQueryHolder*)holder)->GetAccountId()))
+                session->HandlePlayerLogin((LoginQueryHolder*)holder);
 #ifdef ENABLE_PLAYERBOTS
             ObjectGuid guid = ((LoginQueryHolder*)holder)->GetGuid();
             Player* player = sObjectMgr.GetPlayer(guid, true);
@@ -1059,7 +1058,10 @@ void WorldSession::HandlePlayerReconnect()
 
     // initialize client pet bar if need
     _player->SendPetBar();
-
+/* Removed by bots
+    // send mirror timers
+    _player->SendMirrorTimers(true);
+*/
     m_playerLoading = false;
 }
 

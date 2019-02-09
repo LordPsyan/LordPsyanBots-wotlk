@@ -228,7 +228,6 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recv_data)
                     return;
                 }
             }
-
 #ifdef ENABLE_PLAYERBOTS
             if (player->GetPlayerbotAI())
             {
@@ -270,7 +269,6 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recv_data)
 
             if ((type == CHAT_MSG_PARTY_LEADER) && !group->IsLeader(_player->GetObjectGuid()))
                 return;
-
 #ifdef ENABLE_PLAYERBOTS
             for (GroupReference* itr = group->GetFirstMember(); itr != NULL; itr = itr->next())
             {
@@ -309,7 +307,6 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recv_data)
             if (GetPlayer()->GetGuildId())
                 if (Guild* guild = sGuildMgr.GetGuildById(GetPlayer()->GetGuildId()))
                     guild->BroadcastToGuild(this, msg, lang == LANG_ADDON ? LANG_ADDON : LANG_UNIVERSAL);
-
 #ifdef ENABLE_PLAYERBOTS
                 PlayerbotMgr *mgr = GetPlayer()->GetPlayerbotMgr();
                 if (mgr)
@@ -372,7 +369,6 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recv_data)
                 if (!group || group->isBattleGroup() || !group->isRaidGroup())
                     return;
             }
-
 #ifdef ENABLE_PLAYERBOTS
             for (GroupReference* itr = group->GetFirstMember(); itr != NULL; itr = itr->next())
             {
@@ -414,7 +410,6 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recv_data)
                 if (!group || group->isBattleGroup() || !group->isRaidGroup() || !group->IsLeader(_player->GetObjectGuid()))
                     return;
             }
-
 #ifdef ENABLE_PLAYERBOTS
             for (GroupReference* itr = group->GetFirstMember(); itr != NULL; itr = itr->next())
             {
@@ -447,7 +442,6 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recv_data)
             if (!group || !group->isRaidGroup() ||
                     !(group->IsLeader(GetPlayer()->GetObjectGuid()) || group->IsAssistant(GetPlayer()->GetObjectGuid())))
                 return;
-
 #ifdef ENABLE_PLAYERBOTS
             for (GroupReference* itr = group->GetFirstMember(); itr != NULL; itr = itr->next())
             {

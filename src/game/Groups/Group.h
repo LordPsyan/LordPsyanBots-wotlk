@@ -294,7 +294,7 @@ class Group
         ObjectGuid GetTargetIcon(int index) { return m_targetIcons[index]; }
 #endif
 
-    protected:
+     protected:
         bool _addMember(ObjectGuid guid, const char* name, bool isAssistant = false);
         bool _addMember(ObjectGuid guid, const char* name, bool isAssistant, uint8 group);
         bool _removeMember(ObjectGuid guid);                // returns true if leader has changed

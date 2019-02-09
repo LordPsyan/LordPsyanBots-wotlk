@@ -31,7 +31,6 @@
 #include "Maps/MapPersistentStateMgr.h"
 #include "Spells/SpellAuras.h"
 
-
 GroupMemberStatus GetGroupMemberStatus(const Player* member = nullptr)
 {
     if (!member || !member->GetSession() || (!member->IsInWorld() && !member->IsBeingTeleportedFar()))

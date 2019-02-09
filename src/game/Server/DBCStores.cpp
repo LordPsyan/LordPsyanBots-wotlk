@@ -1025,7 +1025,6 @@ uint32 GetDefaultMapLight(uint32 mapId)
     return 0;
 }
 
-
 #ifdef ENABLE_PLAYERBOTS
 EmotesTextSoundEntry const* FindTextSoundEmoteFor(uint32 emote, uint32 race, uint32 gender)
 {

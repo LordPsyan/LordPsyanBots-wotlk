@@ -21,7 +21,7 @@ set(LIBRARY_NAME game)
 add_definitions(-DDT_POLYREF64)
 add_definitions(-D__ASSERT_MACROS_DEFINE_VERSIONS_WITHOUT_UNDERSCORES=0)
 
-# include additionals headers
+# include additional headers
 include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/vmap

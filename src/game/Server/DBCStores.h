@@ -95,13 +95,13 @@ PvPDifficultyEntry const* GetBattlegroundBracketByLevel(uint32 mapid, uint32 lev
 PvPDifficultyEntry const* GetBattlegroundBracketById(uint32 mapid, BattleGroundBracketId id);
 
 uint32 GetCreatureModelRace(uint32 modelId);
+float GetModelMidpoint(uint32 modelId);
 #ifdef ENABLE_PLAYERBOTS
  EmotesTextSoundEntry const* FindTextSoundEmoteFor(uint32 emote, uint32 race, uint32 gender);
  CharSectionsEntry const* GetCharSectionEntry(uint8 race, CharSectionType genType, uint8 gender, uint8 type, uint8 color);
  typedef std::multimap<uint32, CharSectionsEntry const*> CharSectionsMap;
  extern CharSectionsMap sCharSectionMap;
 #endif
-float GetModelMidpoint(uint32 modelId);
 
 uint32 GetDefaultMapLight(uint32 mapId);
 

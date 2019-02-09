@@ -40,9 +40,17 @@ PetAI::PetAI(Creature* creature) : UnitAI(creature), m_creature(creature), inCom
     m_AllySet.clear();
     UpdateAllies();
 
-    if (creature->IsPet() && dynamic_cast<Pet*>(creature)->isControlled()
-        && sWorld.getConfig(CONFIG_BOOL_PET_ATTACK_FROM_BEHIND))
-        m_attackAngle = M_PI_F;
+    switch (((Pet*)creature)->getPetType())
+    {
+        case HUNTER_PET:    //hunter pets attack from behind
+            m_attackAngle = M_PI_F;
+            break;
+        case MINI_PET:
+            SetReactState(REACT_PASSIVE);
+            break;
+        default:
+            break;
+    }
 
     switch (creature->GetUInt32Value(UNIT_CREATED_BY_SPELL))
     {

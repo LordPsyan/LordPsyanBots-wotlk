@@ -58,12 +58,12 @@ class Spell;
 class Item;
 struct FactionTemplateEntry;
 
-#ifdef BUILD_PLAYERBOT
-#include "PlayerBot/Base/PlayerbotMgr.h"
-#include "PlayerBot/Base/PlayerbotAI.h"
-#endif
-
 struct AreaTrigger;
+
+#ifdef ENABLE_PLAYERBOTS
+class PlayerbotAI;
+class PlayerbotMgr;
+#endif
 
 typedef std::deque<Mail*> PlayerMails;
 
@@ -81,19 +81,16 @@ enum SpellModType
     SPELLMOD_PCT                = 108                       // SPELL_AURA_ADD_PCT_MODIFIER
 };
 
-enum EnvironmentFlags
+// 2^n internal values, they are never sent to the client
+enum PlayerUnderwaterState
 {
-    ENVIRONMENT_FLAG_NONE           = 0x00,
-    ENVIRONMENT_FLAG_UNDERWATER     = 0x01,                     // Swimming submerged in any liquid
-    ENVIRONMENT_FLAG_IN_WATER       = 0x02,                     // Swimming in water
-    ENVIRONMENT_FLAG_IN_MAGMA       = 0x04,                     // Swimming in magma
-    ENVIRONMENT_FLAG_IN_SLIME       = 0x08,                     // Swimming in slime
-    ENVIRONMENT_FLAG_HIGH_SEA       = 0x10,                     // Anywhere inside deep water area
-    ENVIRONMENT_FLAG_LIQUID         = 0x20,                     // Anywhere near any liquid
+    UNDERWATER_NONE             = 0x00,
+    UNDERWATER_INWATER          = 0x01,                     // terrain type is water and player is afflicted by it
+    UNDERWATER_INLAVA           = 0x02,                     // terrain type is lava and player is afflicted by it
+    UNDERWATER_INSLIME          = 0x04,                     // terrain type is lava and player is afflicted by it
+    UNDERWATER_INDARKWATER      = 0x08,                     // terrain type is dark water and player is afflicted by it
 
-    ENVIRONMENT_MASK_LIQUID_HAZARD  = (ENVIRONMENT_FLAG_IN_MAGMA | ENVIRONMENT_FLAG_IN_SLIME),
-    ENVIRONMENT_MASK_IN_LIQUID      = (ENVIRONMENT_FLAG_IN_WATER | ENVIRONMENT_MASK_LIQUID_HAZARD),
-    ENVIRONMENT_MASK_LIQUID_FLAGS   = (ENVIRONMENT_FLAG_UNDERWATER | ENVIRONMENT_MASK_IN_LIQUID | ENVIRONMENT_FLAG_HIGH_SEA | ENVIRONMENT_FLAG_LIQUID),
+    UNDERWATER_EXIST_TIMERS     = 0x10
 };
 
 enum BuyBankSlotResult
@@ -478,70 +475,14 @@ enum PlayerFieldByte2Flags
     PLAYER_FIELD_BYTE2_INVISIBILITY_GLOW = 0x40
 };
 
-class MirrorTimer
+enum MirrorTimerType
 {
-    public:
-        enum Type
-        {
-            FATIGUE         = 0,
-            BREATH          = 1,
-            FEIGNDEATH      = 2,
-
-            NUM_CLIENT_TIMERS,
-
-            ENVIRONMENTAL   = NUM_CLIENT_TIMERS,
-
-            NUM_TIMERS
-        };
-
-        enum Status
-        {
-            UNCHANGED       = 0,
-            FULL_UPDATE     = 1,
-            STATUS_UPDATE   = 2,
-        };
-
-        MirrorTimer(Type type) : m_type(type), m_scale(-1), m_spellId(0), m_status(UNCHANGED), m_active(false), m_frozen(false) {}
-
-        inline bool     IsActive() const { return m_active; }
-        inline bool     IsRegenerating() const { return (m_scale > 0); }
-        inline bool     IsFrozen() const { return (m_frozen && !IsRegenerating()); }
-
-        inline Type     GetType() const { return m_type; }
-        inline uint32   GetRemaining() const { return (m_tracker.GetInterval() - m_tracker.GetCurrent()); }
-        inline uint32   GetDuration() const { return m_tracker.GetInterval(); }
-        inline int32    GetScale() const { return m_scale; }
-        inline uint32   GetSpellId() const { return m_spellId; }
-
-        inline Status   FetchStatus();
-
-        inline void Stop();
-
-        inline void Start(uint32 interval, uint32 spellId = 0);
-        inline void Start(uint32 current, uint32 max, uint32 spellId);
-
-        inline void SetRemaining(uint32 duration);
-        inline void SetDuration(uint32 duration);
-
-        inline void SetFrozen(bool state);
-
-        inline void SetScale(int32 scale);
-
-        bool Update(uint32 diff);
-
-    private:
-        Type m_type;
-        int32 m_scale;
-        uint32 m_spellId;
-
-        ShortIntervalTimer m_tracker;
-        ShortIntervalTimer m_pulse;
-
-        Status m_status;
-
-        bool m_active;
-        bool m_frozen;
+    FATIGUE_TIMER               = 0,
+    BREATH_TIMER                = 1,
+    FIRE_TIMER                  = 2
 };
+#define MAX_TIMERS              3
+#define DISABLED_MIRROR_TIMER   -1
 
 // 2^n values
 enum PlayerExtraFlags
@@ -1058,6 +999,11 @@ class Player : public Unit
 
         static bool BuildEnumData(QueryResult* result,  WorldPacket& p_data);
 
+        void SetInWater(bool apply);
+
+        bool IsInWater() const override { return m_isInWater; }
+        bool IsUnderWater() const override;
+
         void SendInitialPacketsBeforeAddToMap();
         void SendInitialPacketsAfterAddToMap();
         void SendInstanceResetWarning(uint32 mapid, Difficulty difficulty, uint32 time) const;
@@ -1492,19 +1438,6 @@ class Player : public Unit
         void AddTimedQuest(uint32 quest_id) { m_timedquests.insert(quest_id); }
         void RemoveTimedQuest(uint32 quest_id) { m_timedquests.erase(quest_id); }
 
-#ifdef BUILD_PLAYERBOT
-        PlayerTalentMap GetTalents(uint8 spec) { return m_talents[spec]; }
-        void chompAndTrim(std::string& str);
-        bool getNextQuestId(const std::string& pString, unsigned int& pStartPos, unsigned int& pId);
-        void skill(std::list<uint32>& m_spellsToLearn);
-        void MakeTalentGlyphLink(std::ostringstream& out);
-        bool requiredQuests(const char* pQuestIdString);
-        PlayerMails::reverse_iterator GetMailRBegin() { return m_mail.rbegin();}
-        PlayerMails::reverse_iterator GetMailREnd() { return m_mail.rend();}
-        void UpdateMail();
-        uint32 GetSpec();
-#endif
-
         //! Return collision height sent to client
         float GetCollisionHeight(bool mounted) const;
 
@@ -1513,7 +1446,9 @@ class Player : public Unit
         /*********************************************************/
 
         bool LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder);
-
+#ifdef ENABLE_PLAYERBOTS
+        bool MinimalLoadFromDB(QueryResult *result, uint32 guid);
+#endif
         static uint32 GetZoneIdFromDB(ObjectGuid guid);
         static uint32 GetLevelFromDB(ObjectGuid guid);
         static bool   LoadPositionFromDB(ObjectGuid guid, uint32& mapid, float& x, float& y, float& z, float& o, bool& in_flight);
@@ -1876,7 +1811,7 @@ class Player : public Unit
         void SendResetFailedNotify(uint32 mapid) const;
 
         bool SetPosition(float x, float y, float z, float orientation, bool teleport = false);
-        void UpdateTerainEnvironmentFlags(Map* m, float x, float y, float z);
+        void UpdateUnderwaterState(Map* m, float x, float y, float z);
 
         void SendMessageToSet(WorldPacket const& data, bool self) const override;// overwrite Object::SendMessageToSet
         void SendMessageToSetInRange(WorldPacket const& data, float dist, bool self) const override;
@@ -1899,6 +1834,14 @@ class Player : public Unit
         void DurabilityPointLossForEquipSlot(EquipmentSlots slot);
         uint32 DurabilityRepairAll(bool cost, float discountMod, bool guildBank);
         uint32 DurabilityRepair(uint16 pos, bool cost, float discountMod, bool guildBank);
+
+        void UpdateMirrorTimers();
+        void StopMirrorTimers()
+        {
+            StopMirrorTimer(FATIGUE_TIMER);
+            StopMirrorTimer(BREATH_TIMER);
+            StopMirrorTimer(FIRE_TIMER);
+        }
 
         void SetLevitate(bool enable) override;
         void SetCanFly(bool enable) override;
@@ -2181,17 +2124,6 @@ class Player : public Unit
         /***              ENVIROMENTAL SYSTEM                  ***/
         /*********************************************************/
 
-        bool IsUnderwater() const override { return (m_environmentFlags & ENVIRONMENT_FLAG_UNDERWATER); }
-        bool IsInWater() const override { return (m_environmentFlags & ENVIRONMENT_FLAG_IN_WATER); }
-        inline bool IsInMagma() const { return (m_environmentFlags & ENVIRONMENT_FLAG_IN_MAGMA); }
-        inline bool IsInSlime() const { return (m_environmentFlags & ENVIRONMENT_FLAG_IN_SLIME); }
-        inline bool IsInHighSea() const { return (m_environmentFlags & ENVIRONMENT_FLAG_HIGH_SEA); }
-
-        inline uint32 GetWaterBreathingInterval() const;
-        void SetWaterBreathingIntervalMultiplier(float multiplier);
-
-        void SendMirrorTimers(bool forced = false);
-
         uint32 EnvironmentalDamage(EnviromentalDamage type, uint32 damage);
 
         /*********************************************************/
@@ -2382,16 +2314,6 @@ class Player : public Unit
 
         bool canSeeSpellClickOn(Creature const* c) const;
 
-#ifdef BUILD_PLAYERBOT
-        // A Player can either have a playerbotMgr (to manage its bots), or have playerbotAI (if it is a bot), or
-        // neither. Code that enables bots must create the playerbotMgr and set it using SetPlayerbotMgr.
-        void SetPlayerbotAI(PlayerbotAI* ai) { assert(!m_playerbotAI && !m_playerbotMgr); m_playerbotAI = ai; }
-        PlayerbotAI* GetPlayerbotAI() { return m_playerbotAI; }
-        void SetPlayerbotMgr(PlayerbotMgr* mgr) { assert(!m_playerbotAI && !m_playerbotMgr); m_playerbotMgr = mgr; }
-        PlayerbotMgr* GetPlayerbotMgr() { return m_playerbotMgr; }
-        void SetBotDeathTimer() { m_deathTimer = 0; }
-        bool IsInDuel() const { return duel && duel->startTime != 0; }
-#endif
 
         // function used for raise ally spell
         bool IsGhouled() const { return m_isGhouled; }
@@ -2433,6 +2355,17 @@ class Player : public Unit
         }
 
         void UpdateEverything();
+
+#ifdef ENABLE_PLAYERBOTS
+        //EquipmentSets& GetEquipmentSets() { return m_EquipmentSets; }
+        void SetPlayerbotAI(PlayerbotAI* ai) { assert(!m_playerbotAI && !m_playerbotMgr); m_playerbotAI = ai; }
+        PlayerbotAI* GetPlayerbotAI() { return m_playerbotAI; }
+        void SetPlayerbotMgr(PlayerbotMgr* mgr) { assert(!m_playerbotAI && !m_playerbotMgr); m_playerbotMgr = mgr; }
+        PlayerbotMgr* GetPlayerbotMgr() { return m_playerbotMgr; }
+        void SetBotDeathTimer() { m_deathTimer = 0; }
+        //PlayerTalentMap& GetTalentMap(uint8 spec) { return m_talents[spec]; }
+#endif
+
     protected:
         /*********************************************************/
         /***               BATTLEGROUND SYSTEM                 ***/
@@ -2519,23 +2452,10 @@ class Player : public Unit
         /***              ENVIRONMENTAL SYSTEM                 ***/
         /*********************************************************/
         void HandleSobering();
-
-        void SetEnvironmentFlags(EnvironmentFlags flags, bool apply);
-
-        void SendMirrorTimerStart(uint32 type, uint32 remaining, uint32 duration, int32 scale, bool paused = false, uint32 spellId = 0);
-        void SendMirrorTimerStop(uint32 type);
-        void SendMirrorTimerPause(uint32 type, bool state);
-
-        void FreezeMirrorTimers(bool state);
-        void UpdateMirrorTimers(uint32 diff, bool send = true);
-
-        inline bool CheckMirrorTimerActivation(MirrorTimer::Type timer) const;
-        inline bool CheckMirrorTimerDeactivation(MirrorTimer::Type timer) const;
-
-        inline void OnMirrorTimerExpirationPulse(MirrorTimer::Type timer);
-
-        inline uint32 GetMirrorTimerMaxDuration(MirrorTimer::Type timer) const;
-        inline SpellAuraHolder const* GetMirrorTimerBuff(MirrorTimer::Type timer) const;
+        void SendMirrorTimer(MirrorTimerType Type, uint32 MaxValue, uint32 CurrentValue, int32 Regen);
+        void StopMirrorTimer(MirrorTimerType Type);
+        void HandleDrowning(uint32 time_diff);
+        int32 getMaxTimer(MirrorTimerType timer) const;
 
         /*********************************************************/
         /***                  HONOR SYSTEM                     ***/
@@ -2718,7 +2638,7 @@ class Player : public Unit
         GridReference<Player> m_gridRef;
         MapReference m_mapRef;
 
-#ifdef BUILD_PLAYERBOT
+#ifdef ENABLE_PLAYERBOTS
         PlayerbotAI* m_playerbotAI;
         PlayerbotMgr* m_playerbotMgr;
 #endif
@@ -2735,10 +2655,10 @@ class Player : public Unit
 
         LiquidTypeEntry const* m_lastLiquid;
 
-        uint8 m_environmentFlags = ENVIRONMENT_FLAG_NONE;
-        float m_environmentBreathingMultiplier = 1.0f;
-
-        MirrorTimer m_mirrorTimers[MirrorTimer::NUM_TIMERS] = { MirrorTimer::FATIGUE, MirrorTimer::BREATH, MirrorTimer::FEIGNDEATH, MirrorTimer::ENVIRONMENTAL };
+        int32 m_MirrorTimer[MAX_TIMERS];
+        uint8 m_MirrorTimerFlags;
+        uint8 m_MirrorTimerFlagsLast;
+        bool m_isInWater;
 
         // Current teleport data
         WorldLocation m_teleport_dest;

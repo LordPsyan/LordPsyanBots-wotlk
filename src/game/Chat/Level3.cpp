@@ -4033,7 +4033,7 @@ bool ChatHandler::HandleDamageCommand(char* args)
     if (damage_int <= 0)
         return true;
 
-    uint32 damage = uint32(damage_int);
+    uint32 damage = damage_int;
 
     // flat melee damage without resistance/etc reduction
     if (!*args)
@@ -4060,18 +4060,14 @@ bool ChatHandler::HandleDamageCommand(char* args)
     if (!*args)
     {
         uint32 absorb = 0;
-        int32 resist = 0;
+        uint32 resist = 0;
 
         target->CalculateDamageAbsorbAndResist(player, schoolmask, SPELL_DIRECT_DAMAGE, damage, &absorb, &resist);
 
-        const uint32 bonus = (resist < 0 ? uint32(std::abs(resist)) : 0);
-        damage += bonus;
-        const uint32 malus = (resist > 0 ? (absorb + uint32(resist)) : absorb);
-
-        if (damage <= malus)
+        if (damage <= absorb + resist)
             return true;
 
-        damage -= malus;
+        damage -= absorb + resist;
 
         player->DealDamageMods(target, damage, &absorb, DIRECT_DAMAGE);
         player->DealDamage(target, damage, nullptr, DIRECT_DAMAGE, schoolmask, nullptr, false);

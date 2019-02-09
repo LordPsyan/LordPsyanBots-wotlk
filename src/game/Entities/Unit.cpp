@@ -48,6 +48,13 @@
 #include "Movement/MoveSpline.h"
 #include "Entities/CreatureLinkingMgr.h"
 #include "Tools/Formulas.h"
+#ifdef ENABLE_PLAYERBOTS
+#include "playerbot.h"
+#include "GuildTaskMgr.h"
+#endif
+#ifdef ENABLE_IMMERSIVE
+#include "immersive.h"
+#endif
 
 #include <math.h>
 #include <array>
@@ -1247,6 +1254,10 @@ void Unit::JustKilledCreature(Creature* victim, Player* responsiblePlayer)
         if (BattleGround* bg = responsiblePlayer->GetBattleGround())
             bg->HandleKillUnit(victim, responsiblePlayer);
 
+#ifdef ENABLE_PLAYERBOTS
+        sGuildTaskMgr.CheckKillTask(responsiblePlayer, victim);
+#endif
+
     // Notify the outdoor pvp script
     if (OutdoorPvP* outdoorPvP = sOutdoorPvPMgr.GetScript(responsiblePlayer ? responsiblePlayer->GetCachedZoneId() : GetZoneId()))
     {
@@ -1927,23 +1938,8 @@ void Unit::CalculateMeleeDamage(Unit* pVictim, CalcDamageInfo* calcDamageInfo, W
 
             uint32 absorb_affected_damage = CalcNotIgnoreAbsorbDamage(subDamage->damage, subDamage->damageSchoolMask);
             calcDamageInfo->target->CalculateDamageAbsorbAndResist(this, subDamage->damageSchoolMask, DIRECT_DAMAGE, absorb_affected_damage, &subDamage->absorb, &subDamage->resist, true);
-
-            const uint32 bonus = (subDamage->resist < 0 ? uint32(std::abs(subDamage->resist)) : 0);
-            subDamage->damage += bonus;
-            calcDamageInfo->totalDamage += bonus;
-
-            const uint32 malus = (subDamage->resist > 0 ? (subDamage->absorb + uint32(subDamage->resist)) : subDamage->absorb);
-
-            if (subDamage->damage <= malus)
-            {
-                calcDamageInfo->totalDamage -= subDamage->damage;
-                subDamage->damage = 0;
-            }
-            else
-            {
-                calcDamageInfo->totalDamage -= malus;
-                subDamage->damage -= malus;
-            }
+            calcDamageInfo->totalDamage -= subDamage->absorb + subDamage->resist;
+            subDamage->damage -= subDamage->absorb + subDamage->resist;
 
             if (subDamage->absorb)
             {
@@ -2196,22 +2192,19 @@ uint32 Unit::CalcArmorReducedDamage(Unit* pVictim, const uint32 damage)
     return (newdamage > 1) ? newdamage : 1;
 }
 
-void Unit::CalculateDamageAbsorbAndResist(Unit* pCaster, SpellSchoolMask schoolMask, DamageEffectType damagetype, const uint32 damage, uint32* absorb, int32* resist, bool canReflect, bool canResist, bool binary)
+void Unit::CalculateDamageAbsorbAndResist(Unit* pCaster, SpellSchoolMask schoolMask, DamageEffectType damagetype, const uint32 damage, uint32* absorb, uint32* resist, bool canReflect, bool canResist, bool binary)
 {
     if (!pCaster || !isAlive() || !damage)
         return;
 
-    int32 RemainingDamage = int32(damage);
-
     // Magic damage, check for resists
     if (canResist && (schoolMask & SPELL_SCHOOL_MASK_MAGIC) && (!binary || damagetype == DOT))
-    {
-        const float multiplier = pCaster->RollMagicResistanceMultiplierOutcomeAgainst(this, schoolMask, damagetype, binary);
-        *resist = int32(int64(damage) * multiplier);
-        RemainingDamage -= *resist;
-    }
+        // We already rolled for possible full resist on hit, so we need to deal at least *some* amount of damage...
+        *resist = std::min((damage - 1), uint32(damage * pCaster->RollMagicPartialResistRatioAgainst(this, schoolMask, damagetype, binary)));
     else
         *resist = 0;
+
+    int32 RemainingDamage = damage - *resist;
 
     // Get unit state (need for some absorb check)
     uint32 unitflag = GetUInt32Value(UNIT_FIELD_FLAGS);
@@ -2731,10 +2724,7 @@ void Unit::CalculateAbsorbResistBlock(Unit* pCaster, SpellNonMeleeDamage* damage
     uint32 absorb_affected_damage = pCaster->CalcNotIgnoreAbsorbDamage(damageInfo->damage, GetSpellSchoolMask(spellProto), spellProto);
     CalculateDamageAbsorbAndResist(pCaster, GetSpellSchoolMask(spellProto), SPELL_DIRECT_DAMAGE, absorb_affected_damage, &damageInfo->absorb, &damageInfo->resist, IsReflectableSpell(spellProto), IsResistableSpell(spellProto), IsBinarySpell(*spellProto));
 
-    const uint32 bonus = (damageInfo->resist < 0 ? uint32(std::abs(damageInfo->resist)) : 0);
-    damageInfo->damage += bonus;
-    const uint32 malus = (damageInfo->resist > 0 ? (damageInfo->absorb + uint32(damageInfo->resist)) : damageInfo->absorb);
-    damageInfo->damage = (damageInfo->damage <= malus ? 0 : (damageInfo->damage - malus));
+    damageInfo->damage -= damageInfo->absorb + damageInfo->resist;
 }
 
 void Unit::CalculateHealAbsorb(const uint32 heal, uint32* absorb)
@@ -3471,6 +3461,9 @@ float Unit::CalculateEffectiveDodgeChance(const Unit* attacker, WeaponAttackType
     const bool isPlayerOrPet = (GetTypeId() == TYPEID_PLAYER || GetOwnerGuid().IsPlayer());
     const uint32 skill = (weapon ? attacker->GetWeaponSkillValue(attType, this) : attacker->GetSkillMaxForLevel(this));
     int32 difference = int32(GetDefenseSkillValue(attacker) - skill);
+#ifdef ENABLE_IMMERSIVE
+    difference += sImmersive.CalculateEffectiveChance(difference, attacker, this, immersive::IMMERSIVE_EFFECTIVE_CHANCE_DODGE);
+#endif
     // Defense/weapon skill factor: for players and NPCs
     float factor = 0.04f;
     // NPCs gain additional bonus dodge chance based on positive skill difference
@@ -3549,6 +3542,9 @@ float Unit::CalculateEffectiveParryChance(const Unit* attacker, WeaponAttackType
     const bool isPlayerOrPet = (GetTypeId() == TYPEID_PLAYER || GetOwnerGuid().IsPlayer());
     const uint32 skill = (weapon ? attacker->GetWeaponSkillValue(attType, this) : attacker->GetSkillMaxForLevel(this));
     int32 difference = int32(GetDefenseSkillValue(attacker) - skill);
+#ifdef ENABLE_IMMERSIVE
+    difference += sImmersive.CalculateEffectiveChance(difference, attacker, this, immersive::IMMERSIVE_EFFECTIVE_CHANCE_PARRY);
+#endif
     // Defense/weapon skill factor: for players and NPCs
     float factor = 0.04f;
     // NPCs gain additional bonus parry chance based on positive skill difference (same value as bonus miss rate)
@@ -3617,7 +3613,10 @@ float Unit::CalculateEffectiveBlockChance(const Unit* attacker, WeaponAttackType
     // b) Attacker has +skill bonuses
     const bool isPlayerOrPet = (GetTypeId() == TYPEID_PLAYER || GetOwnerGuid().IsPlayer());
     const uint32 skill = (weapon ? attacker->GetWeaponSkillValue(attType, this) : attacker->GetSkillMaxForLevel(this));
-    const int32 difference = int32(GetDefenseSkillValue(attacker) - skill);
+    int32 difference = int32(GetDefenseSkillValue(attacker) - skill);
+#ifdef ENABLE_IMMERSIVE
+    difference += sImmersive.CalculateEffectiveChance(difference, attacker, this, immersive::IMMERSIVE_EFFECTIVE_CHANCE_BLOCK);
+#endif
     // Defense/weapon skill factor: for players and NPCs
     float factor = 0.04f;
     // NPCs cannot gain bonus block chance based on positive skill difference
@@ -4128,7 +4127,10 @@ float Unit::CalculateEffectiveCritChance(const Unit* victim, WeaponAttackType at
     // b) Negative means that victim's level is higher or additional +defense bonuses
     const bool ranged = (attType == RANGED_ATTACK);
     const uint32 skill = (weapon ? GetWeaponSkillValue(attType, victim) : GetSkillMaxForLevel(victim));
-    const int32 difference = int32(skill - victim->GetDefenseSkillValue(this));
+    int32 difference = int32(skill - victim->GetDefenseSkillValue(this));
+#ifdef ENABLE_IMMERSIVE
+    difference += sImmersive.CalculateEffectiveChance(difference, this, victim, immersive::IMMERSIVE_EFFECTIVE_CHANCE_CRIT);
+#endif
     // Weapon skill factor: for players and NPCs
     float factor = 0.04f;
     chance += (difference * factor);
@@ -4173,6 +4175,9 @@ float Unit::CalculateEffectiveMissChance(const Unit* victim, WeaponAttackType at
     const bool vsPlayerOrPet = (victim->GetTypeId() == TYPEID_PLAYER || victim->GetOwnerGuid().IsPlayer());
     const uint32 skill = (weapon ? GetWeaponSkillValue(attType, victim) : GetSkillMaxForLevel(victim));
     int32 difference = int32(victim->GetDefenseSkillValue(this) - skill);
+#ifdef ENABLE_IMMERSIVE
+    difference += sImmersive.CalculateEffectiveChance(difference, this, victim, immersive::IMMERSIVE_EFFECTIVE_CHANCE_MISS);
+#endif
     // Defense/weapon skill factor: for players and NPCs
     float factor = 0.04f;
     // NPCs gain additional bonus to incoming hit chance reduction based on positive skill difference (same value as bonus parry rate)
@@ -4216,14 +4221,11 @@ float Unit::CalculateEffectiveMissChance(const Unit* victim, WeaponAttackType at
     // For elemental melee auto-attacks: full resist outcome converted into miss chance (original research on combat logs)
     if (!ranged && !ability)
     {
-        const float percent = victim->CalculateEffectiveMagicResistancePercent(this, GetMeleeDamageSchoolMask((attType == BASE_ATTACK), true));
-        if (percent > 0)
+        const float resistance = victim->CalculateEffectiveMagicResistancePercent(this, GetMeleeDamageSchoolMask((attType == BASE_ATTACK), true));
+        if (const uint32 uindex = uint32(resistance * 100))
         {
-            if (const uint32 uindex = uint32(percent * 100))
-            {
-                const SpellPartialResistChanceEntry &chances = SPELL_PARTIAL_RESIST_DISTRIBUTION.at(uindex);
-                chance += float(chances.at(SPELL_PARTIAL_RESIST_PCT_100) / 100);
-            }
+            const SpellPartialResistChanceEntry &chances = SPELL_PARTIAL_RESIST_DISTRIBUTION.at(uindex);
+            chance += float(chances.at(SPELL_PARTIAL_RESIST_PCT_100) / 100);
         }
     }
     // Finally, take hit chance
@@ -4389,6 +4391,9 @@ float Unit::CalculateSpellMissChance(const Unit* victim, SpellSchoolMask schoolM
     // Level difference: positive adds to miss chance, negative substracts
     const bool vsPlayerOrPet = (victim->GetTypeId() == TYPEID_PLAYER || victim->GetOwnerGuid().IsPlayer());
     int32 difference = int32(victim->GetLevelForTarget(this) - GetLevelForTarget(victim));
+#ifdef ENABLE_IMMERSIVE
+    difference += sImmersive.CalculateEffectiveChance(difference, this, victim, immersive::IMMERSIVE_EFFECTIVE_CHANCE_SPELL_MISS);
+#endif
     // Level difference factor: 1% per level
     uint8 factor = 1;
     // NPCs and players gain additional bonus to incoming spell hit chance reduction based on positive level difference
@@ -4453,69 +4458,54 @@ float Unit::CalculateEffectiveMagicResistancePercent(const Unit* attacker, Spell
     uint32 schools = uint32(schoolMask & ~uint32(SPELL_SCHOOL_MASK_HOLY));
     // Select a resistance value matching given school mask, prefer mininal for multischool spells
     int32 resistance = 0;
-    for (uint32 school = 0; schools; (schools >>= 1), ++school)
+    for (uint32 school = 0; schools; ++school)
     {
         if (schools & 1)
         {
-            // Victim resistance
-            int32 amount = GetResistance(SpellSchools(school));
-
-            // Modify by penetration, but can't go negative with it since early stages of development
-            int32 penetration = attacker->GetResistancePenetration(SpellSchools(school));
-            amount = std::max((amount + penetration), ((amount > 0) ? 0 : amount));
-
+            // Base victim resistance
+            int32 amount = int32(GetResistance(SpellSchools(school)));
+            // Modify by penetration
+            amount -= attacker->GetResistancePenetration(SpellSchools(school));
+            // If unit has no resistance for this school: use it!
+            if (amount < 1)
+            {
+                resistance = 0; // Resistance can't be negative since early stages of development
+                break;
+            }
+            // Else if first school encountered or more vulnerable: memorize and continue
             if (!resistance || amount < resistance)
                 resistance = amount;
         }
+        schools >>= 1;
     }
-
-    float percent = 0;
-
-    if (resistance >= 0)    // Magic resistance calculation
-    {
-        // Attacker's level based skill, penalize when calculating for low levels (< 20):
-        const float skill = std::max(attacker->GetSkillMaxForLevel(this), uint16(100));
-        // Convert resistance value to resistance percentage through comparision with skill
-        percent += (float(resistance) / skill) * 100;
-        // Bonus resistance percent by positive level difference when calculating damage hit for NPCs only
-        if (!binary && GetTypeId() == TYPEID_UNIT && !HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED))
-            percent += (0.4f * std::max(int32(GetSkillMaxForLevel(attacker) - skill), 0));
-        // Magic resistance percentage cap (same as armor cap)
-        percent = std::min(percent, 75.0f);
-    }
-    else                    // Magic vulnerability calculation
-    {
-        // Victim's level based skill, penalize when calculating for low levels (< 20):
-        const float skill = std::max(GetSkillMaxForLevel(attacker), uint16(100));
-        // Convert resistance value to vulnerability percentage through comparision with skill
-        percent += (float(resistance) / skill) * 100;
-    }
-    return percent;
+    // Attacker's level based skill, penalize when calculating for low levels (< 20):
+    const uint32 skill = std::max(attacker->GetSkillMaxForLevel(this), uint16(100));
+    float percent = float(float(resistance) / float(skill)) * 100 * 0.75f;
+    // Bonus resistance by level difference when calculating damage hit for NPCs only
+    if (!binary && GetTypeId() == TYPEID_UNIT && !HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED))
+        percent += (0.4f * std::max(int32(GetSkillMaxForLevel(attacker) - skill), 0));
+    // Magic resistance percentage cap (same as armor cap)
+    return std::max(0.0f, std::min(percent, 75.0f));
 }
 
-float Unit::RollMagicResistanceMultiplierOutcomeAgainst(const Unit *victim, SpellSchoolMask schoolMask, DamageEffectType dmgType, bool binary) const
-{
-    float percentage = victim->CalculateEffectiveMagicResistancePercent(this, schoolMask);
-
-    // Magic vulnerability instead of magic resistance:
-    if (percentage < 0)
-        return (percentage * 0.01f);
-
-    const uint32 index = uint32(percentage * 100);
-
+float Unit::RollMagicPartialResistRatioAgainst(const Unit *victim, SpellSchoolMask schoolMask, DamageEffectType dmgType, bool binary) const
+ {
+    // Returns a ratio portion of resisted damage, range of returned values: 0.0f-1.0f
+    const float k = (dmgType == DOT && binary) ? 0.1f : 1.0f; // Pre-TBC: reduced mitigation against DoTs originating from binary spells
+    const float percent = (victim->CalculateEffectiveMagicResistancePercent(this, schoolMask) * k);
+    const uint32 index = uint32(percent * 100);
     if (!index)
         return 0.0f;
-
     const SpellPartialResistChanceEntry &chances = SPELL_PARTIAL_RESIST_DISTRIBUTION.at(index);
     Die<SpellPartialResist, SPELL_PARTIAL_RESIST_NONE, NUM_SPELL_PARTIAL_RESISTS> die;
-
     for (uint8 outcome = SPELL_PARTIAL_RESIST_NONE; outcome < NUM_SPELL_PARTIAL_RESISTS; ++outcome)
         die.chance[outcome] = chances.at(outcome);
-
     const uint32 random = urand(1, 10000);
     // We must exclude full resist chance from it, we already rolled for it as miss type in attack table (so n-1)
     uint8 portion = std::min(uint8(die.roll(random)), uint8(NUM_SPELL_PARTIAL_RESISTS - 1));
-
+    // Simulate old retail rouding error (full hit cut-off) for: NPC non-binary spells; environmental damage (e.g. lava); elemental attacks
+    if (portion == SPELL_PARTIAL_RESIST_NONE && !binary && percent > 54.0f && (dmgType == DIRECT_DAMAGE || !HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED)))
+        ++portion;
     // To get resisted part ratio, we exclude zero outcome (it is n-1 anyway, so we reuse local var)
     return (float(portion) / float(NUM_SPELL_PARTIAL_RESISTS));
 }
@@ -4529,14 +4519,11 @@ float Unit::CalculateSpellResistChance(const Unit* victim, SpellSchoolMask schoo
     {
         const bool binary = IsBinarySpell(*spell);
         const float percent = victim->CalculateEffectiveMagicResistancePercent(this, schoolMask, binary);
-        if (percent > 0)
-        {
-            if (binary)
-                chance += percent;
-            // Only non-binary spells used by players and pets can be fully resisted by magic resistance, NPC spells can be cut-off
-            else if (HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED))
-                chance += float(SPELL_PARTIAL_RESIST_DISTRIBUTION.at(uint32(percent * 100)).at(SPELL_PARTIAL_RESIST_PCT_100)) * 0.01f;
-        }
+        if (binary)
+            chance += percent;
+        // Only non-binary spells used by players and pets can be fully resisted by magic resistance, NPC spells can be cut-off
+        else if (HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED))
+            chance += float(SPELL_PARTIAL_RESIST_DISTRIBUTION.at(uint32(percent * 100)).at(SPELL_PARTIAL_RESIST_PCT_100)) * 0.01f;
     }
     // Chance to fully resist entire spell by it's dispel type
     if (const int32 type = int32(spell->Dispel))
@@ -4936,7 +4923,7 @@ bool Unit::IsInWater() const
     return GetTerrain()->IsInWater(GetPositionX(), GetPositionY(), GetPositionZ());
 }
 
-bool Unit::IsUnderwater() const
+bool Unit::IsUnderWater() const
 {
     return GetTerrain()->IsUnderWater(GetPositionX(), GetPositionY(), GetPositionZ());
 }
@@ -6509,12 +6496,10 @@ void Unit::SendSpellNonMeleeDamageLog(SpellNonMeleeDamage* log) const
     SendMessageToSet(data, true);
 }
 
-void Unit::SendSpellNonMeleeDamageLog(Unit* target, uint32 spellID, uint32 damage, SpellSchoolMask damageSchoolMask, uint32 absorbedDamage, int32 resist, bool isPeriodic, uint32 blocked, bool criticalHit, bool split)
+void Unit::SendSpellNonMeleeDamageLog(Unit* target, uint32 spellID, uint32 damage, SpellSchoolMask damageSchoolMask, uint32 absorbedDamage, uint32 resist, bool isPeriodic, uint32 blocked, bool criticalHit, bool split)
 {
     SpellNonMeleeDamage log(this, target, spellID, damageSchoolMask);
-    log.damage = damage;
-    log.damage += (resist < 0 ? uint32(std::abs(resist)) : 0);
-    log.damage -= (absorbedDamage + (resist > 0 ? uint32(resist) : 0) + blocked);
+    log.damage = damage - absorbedDamage - resist - blocked;
     log.absorb = absorbedDamage;
     log.resist = resist;
     log.periodicLog = isPeriodic;
@@ -6760,16 +6745,14 @@ void Unit::SendAttackStateUpdate(CalcDamageInfo* calcDamageInfo) const
     SendMessageToSet(data, true);
 }
 
-void Unit::SendAttackStateUpdate(uint32 HitInfo, Unit* target, SpellSchoolMask damageSchoolMask, uint32 Damage, uint32 AbsorbDamage, int32 Resist, VictimState TargetState, uint32 BlockedAmount)
+void Unit::SendAttackStateUpdate(uint32 HitInfo, Unit* target, SpellSchoolMask damageSchoolMask, uint32 Damage, uint32 AbsorbDamage, uint32 Resist, VictimState TargetState, uint32 BlockedAmount)
 {
     CalcDamageInfo dmgInfo;
     dmgInfo.HitInfo = HitInfo;
     dmgInfo.attacker = this;
     dmgInfo.target = target;
     dmgInfo.attackType = BASE_ATTACK;
-    dmgInfo.totalDamage = Damage;
-    dmgInfo.totalDamage += (Resist < 0 ? uint32(std::abs(Resist)) : 0);
-    dmgInfo.totalDamage -= (AbsorbDamage + (Resist > 0 ? uint32(Resist) : 0) + BlockedAmount);
+    dmgInfo.totalDamage = Damage - AbsorbDamage - Resist - BlockedAmount;
     dmgInfo.subDamage[0].damage = dmgInfo.totalDamage;
     dmgInfo.subDamage[0].damageSchoolMask = damageSchoolMask;
     dmgInfo.subDamage[0].absorb = AbsorbDamage;
@@ -9922,6 +9905,7 @@ void Unit::SetDeathState(DeathState s)
         RemoveAllAurasOnDeath();
         BreakCharmOutgoing();
         BreakCharmIncoming();
+        RemoveGuardians();
         RemoveMiniPet();
         UnsummonAllTotems();
 
@@ -13259,7 +13243,9 @@ float Unit::GetAttackDistance(Unit const* pl) const
     uint32 creaturelevel = GetLevelForTarget(pl);
 
     int32 leveldif = int32(playerlevel) - int32(creaturelevel);
-
+#ifdef ENABLE_IMMERSIVE
+    leveldif += sImmersive.CalculateEffectiveChance(leveldif, this, pl, immersive::IMMERSIVE_EFFECTIVE_ATTACK_DISTANCE);
+#endif
     // "The maximum Aggro Radius has a cap of 25 levels under. Example: A level 30 char has the same Aggro Radius of a level 5 char on a level 60 mob."
     if (leveldif < -25)
         leveldif = -25;

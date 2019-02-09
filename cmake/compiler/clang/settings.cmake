@@ -1,0 +1,45 @@
+# Set build-directive (used in core to tell which buildtype we used)
+add_definitions(-D_BUILD_DIRECTIVE='"$(CONFIGURATION)"')
+
+# Check C++11 compiler support
+include(CheckCXXCompilerFlag)
+CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
+CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+if(COMPILER_SUPPORTS_CXX11)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+elseif(COMPILER_SUPPORTS_CXX0X)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+else()
+  message(FATAL_ERROR "Error, CMaNGOS requires a compiler that supports C++11!")
+endif()
+
+if(WARNINGS)
+  set(WARNING_FLAGS "-W -Wall -Wextra -Winit-self -Wfatal-errors")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${WARNING_FLAGS}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WARNING_FLAGS} -Woverloaded-virtual")
+  message(STATUS "Clang: All warnings enabled")
+else()
+# disable "unused function result" warnings
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-result")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-result")
+  
+# disable "unused command line argument" warnings (mostly -I)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-command-line-argument")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-command-line-argument")
+  
+  if (APPLE)
+# disable "has no symbols" warnings
+    set(CMAKE_C_ARCHIVE_CREATE   "<CMAKE_AR> Scr <TARGET> <LINK_FLAGS> <OBJECTS>")
+    set(CMAKE_CXX_ARCHIVE_CREATE "<CMAKE_AR> Scr <TARGET> <LINK_FLAGS> <OBJECTS>")
+    set(CMAKE_C_ARCHIVE_FINISH   "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+    set(CMAKE_CXX_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+  else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-undefined-var-template")
+  endif()
+endif()
+
+if(DEBUG)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g3")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g3")
+  message(STATUS "Clang: Debug-flags set (-g3)")
+endif()

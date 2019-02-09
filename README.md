@@ -1,4 +1,4 @@
-# C(ontinued)-MaNGOS -- README
+# C(ontinued)-MaNGOS -- README - With Bots
 [![Build Status](https://travis-ci.org/cmangos/mangos-wotlk.svg?branch=master)](https://travis-ci.org/cmangos/mangos-wotlk) [![Windows Build status](https://ci.appveyor.com/api/projects/status/github/cmangos/mangos-wotlk?branch=master&svg=true)](https://ci.appveyor.com/project/cmangos/mangos-wotlk/branch/master)
 
 This file is part of the CMaNGOS Project. See [AUTHORS](AUTHORS.md) and [COPYRIGHT](COPYRIGHT.md) files for Copyright information

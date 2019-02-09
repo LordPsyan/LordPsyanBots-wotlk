@@ -41,6 +41,7 @@
 #ifdef ENABLE_PLAYERBOTS
 #include "playerbot.h"
 #include "PlayerbotAIConfig.h"
+#endif
 
 // config option SkipCinematics supported values
 enum CinematicsSkipMode
@@ -112,11 +113,7 @@ void PlayerbotHolder::HandlePlayerBotLoginCallback(QueryResult * dummy, SqlQuery
 
     WorldSession* masterSession = masterAccount ? sWorld.FindSession(masterAccount) : NULL;
     uint32 botAccountId = lqh->GetAccountId();
-    WorldSession *botSession = new WorldSession(botAccountId, NULL, SEC_PLAYER,
-#ifdef MANGOSBOT_ONE
-        1,
-#endif
-        0, LOCALE_enUS);
+    WorldSession *botSession = new WorldSession(botAccountId, NULL, SEC_PLAYER, 1, 0, LOCALE_enUS);
 
     botSession->HandlePlayerLogin(lqh); // will delete lqh
 

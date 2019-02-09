@@ -91,7 +91,7 @@ bool GoAction::Execute(Event event)
             return false;
         }
 
-        float ground = map->GetHeight(x, y, z + 0.5f);
+        float ground = map->GetHeight(0, x, y, z + 0.5f);
         if (ground <= INVALID_HEIGHT)
         {
             ai->TellMaster("I can't go there");

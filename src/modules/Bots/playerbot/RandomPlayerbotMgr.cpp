@@ -362,7 +362,7 @@ void RandomPlayerbotMgr::RandomTeleport(Player* bot, vector<WorldLocation> &locs
 			terrain->IsInWater(x, y, z))
 			continue;
 
-        float ground = map->GetHeight(x, y, z + 0.5f);
+        float ground = map->GetHeight(0, x, y, z + 0.5f);
         if (ground <= INVALID_HEIGHT)
             continue;
 
@@ -640,11 +640,7 @@ void RandomPlayerbotMgr::Refresh(Player* bot)
 
     bot->GetPlayerbotAI()->Reset();
 
-    bot->DurabilityRepairAll(false, 1.0f
-#ifdef MANGOSBOT_ONE
-        , false
-#endif
-    );
+    bot->DurabilityRepairAll(false, 1.0f, false);
 	bot->SetHealthPercent(100);
 	bot->SetPvP(true);
 

@@ -70,7 +70,7 @@ bool BuyAction::BuyItem(VendorItemData const* tItems, ObjectGuid vendorguid, con
     {
         if (tItems->GetItem(slot)->item == itemId)
         {
-            bot->BuyItemFromVendor(vendorguid, itemId, 1, NULL_BAG, NULL_SLOT);
+            bot->BuyItemFromVendorSlot(vendorguid, slot, itemId, 1, NULL_BAG, NULL_SLOT);
             ostringstream out; out << "Buying " << ChatHelper::formatItem(proto);
             ai->TellMaster(out.str());
             return true;

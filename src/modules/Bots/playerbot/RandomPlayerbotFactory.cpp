@@ -136,11 +136,7 @@ bool RandomPlayerbotFactory::CreateRandomBot(uint8 cls)
 	bool excludeCheck = (race == RACE_TAUREN) || (gender == GENDER_FEMALE && race != RACE_NIGHTELF && race != RACE_UNDEAD);
 	uint8 facialHair = excludeCheck ? 0 : facialHairTypes[urand(0, facialHairTypes.size() - 1)];
 
-	WorldSession* session = new WorldSession(accountId, NULL, SEC_PLAYER,
-#ifdef MANGOSBOT_ONE
-        1,
-#endif
-        0, LOCALE_enUS);
+	WorldSession* session = new WorldSession(accountId, NULL, SEC_PLAYER, 1, 0, LOCALE_enUS);
 
     Player *player = new Player(session);
 	if (!player->Create(sObjectMgr.GeneratePlayerLowGuid(), name, race, cls, gender,

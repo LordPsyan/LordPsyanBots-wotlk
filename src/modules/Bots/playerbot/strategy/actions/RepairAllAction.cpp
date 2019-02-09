@@ -25,11 +25,7 @@ bool RepairAllAction::Execute(Event event)
 
         sServerFacade.SetFacingTo(bot, unit);
         float discountMod = bot->GetReputationPriceDiscount(unit);
-        uint32 totalCost = bot->DurabilityRepairAll(true, discountMod
-#ifdef MANGOSBOT_ONE
-            , false
-#endif
-        );
+        uint32 totalCost = bot->DurabilityRepairAll(true, discountMod, false);
 
         ostringstream out;
         out << "Repair: " << chat->formatMoney(totalCost) << " (" << unit->GetName() << ")";

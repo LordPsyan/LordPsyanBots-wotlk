@@ -3090,9 +3090,4 @@ enum LootType
     LOOT_DEBUG          = 100
 };
 
-#ifdef ENABLE_PLAYERBOTS || ENABLE_IMMERSIVE
-#define MANGOSBOT_ZERO
-#define CMANGOS
-#endif
-
 #endif

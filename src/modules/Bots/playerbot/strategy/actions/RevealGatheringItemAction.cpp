@@ -95,14 +95,7 @@ bool RevealGatheringItemAction::Execute(Event event)
     data << bot->GetObjectGuid();
     data << go->GetPositionX();
     data << go->GetPositionY();
-    bot->GetGroup()->BroadcastPacket(
-#ifdef MANGOS
-            &data,
-#endif
-#ifdef CMANGOS
-            data,
-#endif
-            true, -1, bot->GetObjectGuid());
+    bot->GetGroup()->BroadcastPacket(data, true, -1, bot->GetObjectGuid());
     bot->Say(msg.str(), LANG_UNIVERSAL);
     return true;
 }

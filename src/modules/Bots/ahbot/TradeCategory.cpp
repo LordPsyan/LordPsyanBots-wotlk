@@ -76,9 +76,7 @@ bool TradeSkill::ContainsInternal(ItemPrototype const* proto)
             (recipe->SubClass == ITEM_SUBCLASS_ALCHEMY_RECIPE && skill == SKILL_ALCHEMY) ||
             (recipe->SubClass == ITEM_SUBCLASS_FIRST_AID_MANUAL && skill == SKILL_FIRST_AID) ||
             (recipe->SubClass == ITEM_SUBCLASS_ENCHANTING_FORMULA && skill == SKILL_ENCHANTING) ||
-#ifdef MANGOSBOT_ONE
             (recipe->SubClass == ITEM_SUBCLASS_JEWELCRAFTING_RECIPE && skill == SKILL_JEWELCRAFTING) ||
-#endif
             (recipe->SubClass == ITEM_SUBCLASS_FISHING_MANUAL && skill == SKILL_FISHING)
             ))
         {
@@ -172,10 +170,8 @@ string TradeSkill::GetName()
         return "trade.herbalism";
     case SKILL_FIRST_AID:
         return "trade.firstaid";
-#ifdef MANGOSBOT_ONE
     case SKILL_JEWELCRAFTING:
         return "trade.jewelcrafting";
-#endif
     }
 }
 
@@ -205,9 +201,7 @@ string TradeSkill::GetLabel()
         return "ore and stone";
     case SKILL_FIRST_AID:
         return "first aid reagents";
-#ifdef MANGOSBOT_ONE
     case SKILL_JEWELCRAFTING:
         return "jewelcrafting";
-#endif
     }
 }

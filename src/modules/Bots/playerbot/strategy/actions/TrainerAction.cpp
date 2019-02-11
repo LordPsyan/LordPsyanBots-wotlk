@@ -14,19 +14,7 @@ void TrainerAction::Learn(uint32 cost, TrainerSpell const* tSpell, ostringstream
     }
 
     bot->ModifyMoney(-int32(cost));
-#ifdef MANGOSBOT_ZERO
-    bot->CastSpell(bot, tSpell->spell,
-#ifdef MANGOS
-                    true
-#endif
-#ifdef CMANGOS
-                    (uint32)0
-#endif
-    );
-#endif
-#ifdef MANGOSBOT_ONE
     bot->learnSpell(tSpell->spell, false);
-#endif
 
     msg << " - learned";
 }

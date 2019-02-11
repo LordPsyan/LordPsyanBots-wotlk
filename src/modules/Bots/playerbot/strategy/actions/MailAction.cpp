@@ -95,9 +95,7 @@ public:
                 WorldPacket packet;
                 packet << mailbox;
                 packet << mail->messageID;
-#ifdef MANGOSBOT_ONE
                 packet << *i;
-#endif
                 Item* item = bot->GetMItem(*i);
                 ostringstream out;
                 out << mail->subject << ", " << ChatHelper::formatItem(item->GetProto()) << "|cff00ff00 processed";
@@ -243,9 +241,7 @@ void MailProcessor::RemoveMail(Player* bot, uint32 id, ObjectGuid mailbox)
     WorldPacket packet;
     packet << mailbox;
     packet << id;
-#ifdef MANGOSBOT_ONE
     packet << (uint32)0; //mailTemplateId
-#endif
     bot->GetSession()->HandleMailDelete(packet);
 }
 

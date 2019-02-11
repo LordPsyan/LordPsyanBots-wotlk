@@ -143,14 +143,7 @@ bool SummonAction::SummonUsingNpcs(Player *summoner, Player *player)
             SpellEntry const* spellInfo = sServerFacade.LookupSpellInfo(8690);
             if (!spellInfo)
                 return false;
-            Spell spell(player, spellInfo,
-#ifdef MANGOS
-                    0
-#endif
-#ifdef CMANGOS
-                    TRIGGERED_OLD_TRIGGERED
-#endif
-                    );
+            Spell spell(player, spellInfo, TRIGGERED_OLD_TRIGGERED);
             spell.SendSpellCooldown();
 
             return Teleport(summoner, player);

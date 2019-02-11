@@ -43,11 +43,7 @@ bool UseItemAction::Execute(Event event)
 bool UseItemAction::UseGameObject(ObjectGuid guid)
 {
     GameObject* go = ai->GetGameObject(guid);
-    if (!go || !sServerFacade.isSpawned(go)
-#ifdef CMANGOS
-        || go->IsInUse() 
-#endif
-        || go->GetGoState() != GO_STATE_READY)
+    if (!go || !sServerFacade.isSpawned(go) || go->IsInUse() || go->GetGoState() != GO_STATE_READY)
         return false;
 
    go->Use(bot);
@@ -86,18 +82,11 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget)
    uint64 item_guid = item->GetObjectGuid().GetRawValue();
    uint32 glyphIndex = 0;
    uint8 unk_flags = 0;
-#ifdef MANGOSBOT_ZERO
-   uint16 targetFlag = TARGET_FLAG_SELF;
-#endif
-#ifdef MANGOSBOT_ONE
    uint32 targetFlag = TARGET_FLAG_SELF;
-#endif
 
    WorldPacket packet(CMSG_USE_ITEM);
    packet << bagIndex << slot << spell_index;
-#ifdef MANGOSBOT_ONE
    packet << cast_count << item_guid;
-#endif
 
    bool targetSelected = false;
    ostringstream out; out << "Using " << chat->formatItem(item->GetProto());
@@ -125,7 +114,6 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget)
 
    if (itemTarget)
    {
-#ifdef MANGOSBOT_ONE
       if (item->GetProto()->Class == ITEM_CLASS_GEM)
       {
          bool fit = SocketItem(itemTarget, item) || SocketItem(itemTarget, item, true);
@@ -135,15 +123,12 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget)
       }
       else
       {
-#endif
       targetFlag = TARGET_FLAG_ITEM;
       packet << targetFlag;
       packet.appendPackGUID(itemTarget->GetObjectGuid());
       out << " on " << chat->formatItem(itemTarget->GetProto());
       targetSelected = true;
-#ifdef MANGOSBOT_ONE
       }
-#endif
    }
 
    Player* master = GetMaster();
@@ -262,7 +247,6 @@ bool UseItemAction::UseItem(Item* item, ObjectGuid goGuid, Item* itemTarget)
    return true;
 }
 
-#ifdef MANGOSBOT_ONE
 bool UseItemAction::SocketItem(Item* item, Item* gem, bool replace)
 {
    WorldPacket* const packet = new WorldPacket(CMSG_SOCKET_GEMS);
@@ -319,7 +303,6 @@ bool UseItemAction::SocketItem(Item* item, Item* gem, bool replace)
    }
    return fits;
 }
-#endif
 
 bool UseItemAction::isPossible()
 {

@@ -24,25 +24,14 @@ bool MovementAction::MoveNear(WorldObject* target, float distance)
     if (!target)
         return false;
 
-#ifdef MANGOS
-    distance += target->GetObjectBoundingRadius();
-#endif
-
     float x = target->GetPositionX();
     float y = target->GetPositionY();
     float z = target->GetPositionZ();
     float followAngle = GetFollowAngle();
     for (float angle = followAngle; angle <= followAngle + 2 * M_PI; angle += M_PI / 4)
     {
-#ifdef CMANGOS
         float dist = distance + target->GetObjectBoundingRadius();
         target->GetNearPoint(bot, x, y, z, bot->GetObjectBoundingRadius(), min(dist, sPlayerbotAIConfig.followDistance), angle);
-#endif
-#ifdef MANGOS
-        float x = target->GetPositionX() + cos(angle) * distance,
-             y = target->GetPositionY()+ sin(angle) * distance,
-             z = target->GetPositionZ();
-#endif
         if (!bot->IsWithinLOS(x, y, z))
             continue;
         bool moved = MoveTo(target->GetMapId(), x, y, z);
@@ -87,9 +76,7 @@ bool MovementAction::MoveTo(uint32 mapId, float x, float y, float z, bool idle)
         }
 
         MotionMaster &mm = *bot->GetMotionMaster();
-#ifdef CMANGOS
         mm.Clear();
-#endif
         mm.MovePoint(mapId, x, y, z, generatePath);
 
         AI_VALUE(LastMovement&, "last movement").Set(x, y, z, bot->GetOrientation());
@@ -114,17 +101,10 @@ bool MovementAction::MoveTo(Unit* target, float distance)
     float by = bot->GetPositionY();
     float bz = bot->GetPositionZ();
 
-#ifdef CMANGOS
     float tx = target->GetPositionX();
     float ty = target->GetPositionY();
     float tz = target->GetPositionZ();
     target->GetNearPoint(bot, tx, ty, tz, bot->GetObjectBoundingRadius(), distance + target->GetObjectBoundingRadius(), GetFollowAngle());
-#endif
-#ifdef MANGOS
-    float tx = target->GetPositionX();
-    float ty = target->GetPositionY();
-    float tz = target->GetPositionZ();
-#endif
 
     float distanceToTarget = sServerFacade.GetDistance2d(bot, target);
     float angle = bot->GetAngle(target);
@@ -289,24 +269,12 @@ bool MovementAction::Follow(Unit* target, float distance, float angle)
 
     if (bot->GetMotionMaster()->GetCurrentMovementGeneratorType() == FOLLOW_MOTION_TYPE)
     {
-        Unit *currentTarget = static_cast<ChaseMovementGenerator<Player> const*>(bot->GetMotionMaster()->GetCurrent())->
-#ifdef MANGOS
-            GetTarget();
-#endif
-#ifdef CMANGOS
-            GetCurrentTarget();
-#endif
+        Unit *currentTarget = static_cast<ChaseMovementGenerator<Player> const*>(bot->GetMotionMaster()->GetCurrent())->GetCurrentTarget();
+
         if (currentTarget && currentTarget->GetObjectGuid() == target->GetObjectGuid()) return false;
     }
 
-    mm.MoveFollow(target,
-#ifdef MANGOS
-            distance,
-#endif
-#ifdef CMANGOS
-            distance - target->GetObjectBoundingRadius(),
-#endif
-            angle);
+    mm.MoveFollow(target, distance - target->GetObjectBoundingRadius(), angle);
     return true;
 }
 
@@ -407,11 +375,7 @@ bool SetFacingTargetAction::Execute(Event event)
     if (!target)
         return false;
 
-    if (bot->IsTaxiFlying()
-#ifdef MANGOSBOT_ZERO
-            || bot->IsFlying()
-#endif
-            )
+    if (bot->IsTaxiFlying())
         return true;
 
     sServerFacade.SetFacingTo(bot, target);

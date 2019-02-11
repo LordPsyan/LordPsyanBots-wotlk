@@ -88,18 +88,11 @@ bool AttackAction::Attack(Unit* target)
     Pet* pet = bot->GetPet();
     if (pet)
     {
-#ifdef MANGOS
-        CreatureAI*
-#endif
-#ifdef CMANGOS
         UnitAI*
-#endif
             creatureAI = ((Creature*)pet)->AI();
         if (creatureAI)
         {
-#ifdef CMANGOS
             creatureAI->SetReactState(REACT_PASSIVE);
-#endif
             creatureAI->AttackStart(target);
         }
     }

@@ -81,12 +81,8 @@ namespace ahbot
         {
             return proto->Class == ITEM_CLASS_TRADE_GOODS ||
                     proto->Class == ITEM_CLASS_MISC ||
-                    proto->Class == ITEM_CLASS_REAGENT
-#ifdef MANGOSBOT_ONE
-                ||
-                    proto->Class == ITEM_CLASS_GEM
-#endif
-                ;
+                    proto->Class == ITEM_CLASS_REAGENT ||
+                    proto->Class == ITEM_CLASS_GEM;
         }
         virtual string GetName() { return "trade"; }
 

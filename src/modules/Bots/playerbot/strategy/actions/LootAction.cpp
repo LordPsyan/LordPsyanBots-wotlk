@@ -71,11 +71,7 @@ bool OpenLootAction::DoLoot(LootObject& lootObject)
     if (creature && bot->GetDistance(creature) > INTERACTION_DISTANCE)
         return false;
 
-    if (creature && creature->HasFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE)
-#ifdef CMANGOS
-            && !creature->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SKINNABLE)
-#endif
-            )
+    if (creature && creature->HasFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE) && !creature->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SKINNABLE))
     {
         bot->GetMotionMaster()->Clear();
         WorldPacket packet(CMSG_LOOT, 8);
@@ -108,12 +104,7 @@ bool OpenLootAction::DoLoot(LootObject& lootObject)
     if (go && bot->GetDistance(go) > INTERACTION_DISTANCE)
         return false;
 
-    if (go && (
-#ifdef CMANGOS
-        go->IsInUse() || 
-#endif
-        go->GetGoState() != GO_STATE_READY
-        ))
+    if (go && (go->IsInUse() || go->GetGoState() != GO_STATE_READY))
         return false;
 
     bot->GetMotionMaster()->Clear();
@@ -265,11 +256,7 @@ bool StoreLootAction::Execute(Event event)
         p.read_skip<uint32>();  // randomPropertyId
         p >> lootslot_type;     // 0 = can get, 1 = look only, 2 = master get
 
-		if (lootslot_type != LOOT_SLOT_NORMAL
-#ifdef MANGOSBOT_ONE
-		        && lootslot_type != LOOT_SLOT_OWNER
-#endif
-            )
+		if (lootslot_type != LOOT_SLOT_NORMAL && lootslot_type != LOOT_SLOT_OWNER)
 			continue;
 
         if (loot_type != LOOT_SKINNING && !IsLootAllowed(itemid, ai))

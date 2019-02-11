@@ -29,23 +29,11 @@ Unit* SnareTargetValue::Calculate()
         case CHASE_MOTION_TYPE:
             if (unit->GetTypeId() == TYPEID_PLAYER)
             {
-                chaseTarget = static_cast<ChaseMovementGenerator<Player> const*>(unit->GetMotionMaster()->GetCurrent())->
-#ifdef MANGOS
-                        GetTarget();
-#endif
-#ifdef CMANGOS
-                        GetCurrentTarget();
-#endif
+                chaseTarget = static_cast<ChaseMovementGenerator<Player> const*>(unit->GetMotionMaster()->GetCurrent())->GetCurrentTarget();
             }
             else
             {
-                chaseTarget = static_cast<ChaseMovementGenerator<Creature> const*>(unit->GetMotionMaster()->GetCurrent())->
-#ifdef MANGOS
-                        GetTarget();
-#endif
-#ifdef CMANGOS
-                        GetCurrentTarget();
-#endif
+                chaseTarget = static_cast<ChaseMovementGenerator<Creature> const*>(unit->GetMotionMaster()->GetCurrent())->GetCurrentTarget();
             }
 
             if (!chaseTarget) continue;

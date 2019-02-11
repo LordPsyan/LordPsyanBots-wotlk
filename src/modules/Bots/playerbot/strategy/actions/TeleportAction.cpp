@@ -32,12 +32,7 @@ bool TeleportAction::Execute(Event event)
         Spell *spell = new Spell(bot, pSpellInfo, false);
         SpellCastTargets targets;
         targets.setUnitTarget(bot);
-#ifdef MANGOS
-        spell->prepare(&targets, NULL);
-#endif
-#ifdef CMANGOS
         spell->SpellStart(&targets, NULL);
-#endif
             spell->cast(true);
         return true;
     }

@@ -14,14 +14,7 @@
 #include "RandomPlayerbotFactory.h"
 #include "ServerFacade.h"
 #include "AiFactory.h"
-#ifdef MANGOSBOT_ONE
-    #ifdef CMANGOS
-        #include "Arena/ArenaTeam.h"
-    #endif
-    #ifdef MANGOS
-        #include "ArenaTeam.h"
-    #endif
-#endif
+#include "Arena/ArenaTeam.h"
 #ifdef ENABLE_IMMERSIVE
 #include "immersive.h"
 #endif
@@ -208,9 +201,7 @@ void PlayerbotFactory::Randomize(bool incremental)
     pmo = sPerformanceMonitor.start(PERF_MON_RNDBOT, "PlayerbotFactory_Guilds & 1v1 ArenaTeams");
     sLog.outDetail("Initializing guilds & 1v1 ArenaTeams");
     InitGuild();
-#ifdef MANGOSBOT_ONE
     InitArenaTeam();
-#endif
     if (pmo) pmo->finish();
 
     pmo = sPerformanceMonitor.start(PERF_MON_RNDBOT, "PlayerbotFactory_Pet");
@@ -405,17 +396,13 @@ void PlayerbotFactory::InitPet()
             pet->SetPower(POWER_HAPPINESS, HAPPINESS_LEVEL_SIZE * 2);
             pet->GetCharmInfo()->SetPetNumber(sObjectMgr.GeneratePetNumber(), true);
             pet->AIM_Initialize();
-#ifdef CMANGOS
             pet->GetMap()->Add((Creature*)pet);
             pet->AIM_Initialize();
-#endif
             pet->InitPetCreateSpells();
-#ifdef CMANGOS
             pet->LearnPetPassives();
             pet->CastPetAuras(true);
             pet->CastOwnerTalentAuras();
             pet->UpdateAllStats();
-#endif
             bot->SetPet(pet);
             bot->SetPetGuid(pet->GetObjectGuid());
 
@@ -1106,10 +1093,10 @@ void PlayerbotFactory::EnchantItem(Item* item)
 
             if (!CheckItemStats(sp, ap, tank))
                 continue;
-#ifdef MANGOSBOT_ONE
+
             if (enchant->EnchantmentCondition && !bot->EnchantmentFitsRequirements(enchant->EnchantmentCondition, -1))
                continue;
-#endif
+
             if (!item->IsFitToSpellRequirements(entry))
                 continue;
 
@@ -1836,7 +1823,7 @@ void PlayerbotFactory::InitImmersive()
     bot->UpdateAllStats();
 }
 
-#ifdef MANGOSBOT_ONE
+
 void PlayerbotFactory::InitArenaTeam()
 {
    uint8 slot = ArenaTeam::GetSlotByType(ARENA_TYPE_2v2);
@@ -1883,7 +1870,6 @@ void PlayerbotFactory::InitArenaTeam()
 
    return;
 }
-#endif
 
 void PlayerbotFactory::ApplyEnchantTemplate()
 {

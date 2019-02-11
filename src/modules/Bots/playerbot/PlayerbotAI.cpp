@@ -113,12 +113,7 @@ PlayerbotAI::PlayerbotAI(Player* bot) :
     botOutgoingPacketHandlers.AddHandler(SMSG_QUESTUPDATE_ADD_KILL, "quest objective completed");
     botOutgoingPacketHandlers.AddHandler(SMSG_ITEM_PUSH_RESULT, "item push result");
     botOutgoingPacketHandlers.AddHandler(SMSG_PARTY_COMMAND_RESULT, "party command");
-#ifdef MANGOS
-    botOutgoingPacketHandlers.AddHandler(SMSG_CAST_FAILED, "cast failed");
-#endif
-#ifdef CMANGOS
     botOutgoingPacketHandlers.AddHandler(SMSG_CAST_RESULT, "cast failed");
-#endif
     botOutgoingPacketHandlers.AddHandler(SMSG_DUEL_REQUESTED, "duel requested");
     botOutgoingPacketHandlers.AddHandler(SMSG_INVENTORY_CHANGE_FAILURE, "inventory change failure");
 
@@ -209,9 +204,6 @@ void PlayerbotAI::Reset()
     aiObjectContext->GetValue<LastMovement& >("last taxi")->Get().Set(NULL);
 
     bot->GetMotionMaster()->Clear();
-#ifdef MANGOS
-    bot->m_taxi.ClearTaxiDestinations();
-#endif
     InterruptSpell();
 
     for (int i = 0 ; i < BOT_STATE_MAX; i++)
@@ -385,16 +377,7 @@ int32 PlayerbotAI::CalculateGlobalCooldown(uint32 spellid)
     if (!spellid)
         return 0;
 
-#ifdef MANGOS
-    if (bot->HasSpellCooldown(spellid))
-        return sPlayerbotAIConfig.globalCoolDown;
-
-    return sPlayerbotAIConfig.reactDelay;
-#endif
-
-#ifdef CMANGOS
     return sPlayerbotAIConfig.globalCoolDown;
-#endif
 }
 
 void PlayerbotAI::HandleMasterIncomingPacket(const WorldPacket& packet)
@@ -440,11 +423,7 @@ void PlayerbotAI::DoNextAction()
         return;
     }
 
-    if (bot->IsTaxiFlying()
-#ifdef MANGOSBOT_ZERO
-            || bot->IsFlying()
-#endif
-            )
+    if (bot->IsTaxiFlying())
     {
         SetNextCheckDelay(sPlayerbotAIConfig.passiveDelay);
         return;
@@ -877,11 +856,6 @@ bool PlayerbotAI::CanCastSpell(uint32 spellid, Unit* target, uint8 effectMask, b
     if (checkHasSpell && !bot->HasSpell(spellid))
         return false;
 
-#ifdef MANGOS
-    if (bot->HasSpellCooldown(spellid))
-        return false;
-#endif
-
 	SpellEntry const *spellInfo = sServerFacade.LookupSpellInfo(spellid);
 	if (!spellInfo)
         return false;
@@ -1104,13 +1078,7 @@ bool PlayerbotAI::CastSpell(uint32 spellId, Unit* target, Item* itemTarget)
         }
     }
 
-
-#ifdef MANGOS
-	spell->prepare(&targets);
-#endif
-#ifdef CMANGOS
     spell->SpellStart(&targets);
-#endif
     WaitForSpellCast(spell);
     aiObjectContext->GetValue<LastSpellCast&>("last spell cast")->Get().Set(spellId, target->GetObjectGuid(), time(0));
     aiObjectContext->GetValue<ai::PositionMap&>("position")->Get()["random"].Reset();
@@ -1830,12 +1798,7 @@ void PlayerbotAI::ImbueItem(Item* item, uint32 targetFlag, ObjectGuid targetGUID
       }
    }
 
-#ifdef CMANGOS
    std::unique_ptr<WorldPacket> packet(new WorldPacket(CMSG_USE_ITEM, 20));
-#endif
-#ifdef MANGOS
-   WorldPacket* packet = new WorldPacket(CMSG_USE_ITEM, 20);
-#endif
 
    *packet << bagIndex;
    *packet << slot;
@@ -1847,12 +1810,7 @@ void PlayerbotAI::ImbueItem(Item* item, uint32 targetFlag, ObjectGuid targetGUID
    if (targetFlag & (TARGET_FLAG_UNIT | TARGET_FLAG_ITEM | TARGET_FLAG_OBJECT))
       *packet << targetGUID.WriteAsPacked();
 
-#ifdef CMANGOS
    bot->GetSession()->QueuePacket(std::move(packet));
-#endif
-#ifdef MANGOS
-   bot->GetSession()->QueuePacket(packet);
-#endif
 }
 
 void PlayerbotAI::EnchantItemT(uint32 spellid, uint8 slot)
@@ -1860,13 +1818,7 @@ void PlayerbotAI::EnchantItemT(uint32 spellid, uint8 slot)
    Item* pItem = bot->GetItemByPos(INVENTORY_SLOT_BAG_0, slot);
    if (!pItem)
     return;
-#ifdef MANGOS
-    #ifdef MANGOSBOT_ZERO
-       SpellEntry const* spellInfo = sSpellStore.LookupEntry(spellid);
-    #endif
-#else
    SpellEntry const* spellInfo = sSpellTemplate.LookupEntry<SpellEntry>(spellid);
-#endif
    if (!spellInfo)
       return;
 

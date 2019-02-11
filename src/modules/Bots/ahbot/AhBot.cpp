@@ -18,9 +18,7 @@
 #include "Player.h"
 #include "Mail.h"
 
-#ifdef CMANGOS
 #include <boost/thread/thread.hpp>
-#endif
 
 using namespace ahbot;
 
@@ -103,30 +101,15 @@ ObjectGuid AhBot::GetAHBplayerGUID()
     return ObjectGuid(sAhBotConfig.guid);
 }
 
-#ifdef MANGOS
-class AhbotThread: public ACE_Task <ACE_MT_SYNCH>
-{
-public:
-    int svc(void) { auctionbot.ForceUpdate(); return 0; }
-};
-#endif
-#ifdef CMANGOS
 void AhbotThread()
 {
     auctionbot.ForceUpdate();
 }
-#endif
 
 void activateAhbotThread()
 {
-#ifdef MANGOS
-    AhbotThread *thread = new AhbotThread();
-    thread->activate();
-#endif
-#ifdef CMANGOS
     boost::thread t(AhbotThread);
     t.detach();
-#endif
 }
 
 void AhBot::Update()

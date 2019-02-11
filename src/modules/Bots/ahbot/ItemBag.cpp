@@ -47,9 +47,7 @@ CategoryList::CategoryList()
     Add(new TradeSkill(SKILL_MINING));
     Add(new TradeSkill(SKILL_HERBALISM));
     Add(new TradeSkill(SKILL_SKINNING));
-#ifdef MANGOSBOT_ONE
     Add(new TradeSkill(SKILL_JEWELCRAFTING));
-#endif
 }
 
 void CategoryList::Add(Category* category)

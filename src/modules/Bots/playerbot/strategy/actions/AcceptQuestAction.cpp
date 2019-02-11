@@ -112,14 +112,7 @@ bool AcceptQuestShareAction::Execute(Event event)
 
         if( qInfo->GetSrcSpell() > 0 )
         {
-            bot->CastSpell( bot, qInfo->GetSrcSpell(),
-#ifdef MANGOS
-                    true
-#endif
-#ifdef CMANGOS
-                    (uint32)0
-#endif
-            );
+            bot->CastSpell( bot, qInfo->GetSrcSpell(), (uint32)0);
         }
 
         ai->TellMaster("Quest accepted");

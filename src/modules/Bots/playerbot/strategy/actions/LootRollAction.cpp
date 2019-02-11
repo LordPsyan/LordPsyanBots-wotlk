@@ -23,35 +23,6 @@ bool LootRollAction::Execute(Event event)
     if(!group)
         return false;
 
-#ifdef MANGOS
-    RollVote vote = ROLL_PASS;
-    for (vector<Roll*>::iterator i = group->GetRolls().begin(); i != group->GetRolls().end(); ++i)
-    {
-        if ((*i)->isValid() && (*i)->lootedTargetGUID == guid && (*i)->itemSlot == slot)
-        {
-            uint32 itemId = (*i)->itemid;
-            ItemPrototype const *proto = sItemStorage.LookupEntry<ItemPrototype>(itemId);
-            if (!proto)
-                continue;
-
-            vote = CalculateRollVote(proto);
-            if (vote != ROLL_PASS) break;
-        }
-    }
-
-    switch (group->GetLootMethod())
-    {
-    case MASTER_LOOT:
-    case FREE_FOR_ALL:
-        group->CountRollVote(bot, guid, slot, ROLL_PASS);
-        break;
-    default:
-        group->CountRollVote(bot, guid, slot, vote);
-        break;
-    }
-#endif
-
-#ifdef CMANGOS
     Loot* loot = sLootMgr.GetLoot(bot, guid);
     if (!loot)
         return false;
@@ -68,8 +39,6 @@ bool LootRollAction::Execute(Event event)
         return false;
 
     lootRoll->PlayerVote(bot, vote);
-#endif
-
     return true;
 }
 

@@ -23,34 +23,17 @@ using namespace MaNGOS;
 
 INSTANTIATE_SINGLETON_1(RandomPlayerbotMgr);
 
-#ifdef CMANGOS
 #include <boost/thread/thread.hpp>
-#endif
 
-#ifdef MANGOS
-class PrintStatsThread: public ACE_Task <ACE_MT_SYNCH>
-{
-public:
-    int svc(void) { sRandomPlayerbotMgr.PrintStats(); return 0; }
-};
-#endif
-#ifdef CMANGOS
 void PrintStatsThread()
 {
     sRandomPlayerbotMgr.PrintStats();
 }
-#endif
 
 void activatePrintStatsThread()
 {
-#ifdef MANGOS
-    PrintStatsThread *thread = new PrintStatsThread();
-    thread->activate();
-#endif
-#ifdef CMANGOS
     boost::thread t(PrintStatsThread);
     t.detach();
-#endif
 }
 
 RandomPlayerbotMgr::RandomPlayerbotMgr() : PlayerbotHolder(), processTicks(0), loginProgressBar(NULL)
@@ -1175,12 +1158,6 @@ void RandomPlayerbotMgr::ChangeStrategy(Player* player)
 
 void RandomPlayerbotMgr::RandomTeleportForRpg(Player* bot)
 {
-#ifdef CMANGOS
     sLog.outDetail("Random teleporting bot %s for RPG (%d locations available)", bot->GetName(), rpgLocsCache[bot->GetFactionTemplateEntry()->ID].size());
     RandomTeleport(bot, rpgLocsCache[bot->GetFactionTemplateEntry()->ID]);
-#endif
-#ifdef MANGOS
-    sLog.outDetail("Random teleporting bot %s for RPG (%d locations available)", bot->GetName(), rpgLocsCache[bot->getFactionTemplateEntry()->ID].size());
-    RandomTeleport(bot, rpgLocsCache[bot->getFactionTemplateEntry()->ID]);
-#endif
 }

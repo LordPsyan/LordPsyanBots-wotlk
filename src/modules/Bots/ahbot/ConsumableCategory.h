@@ -50,12 +50,8 @@ namespace ahbot
         virtual bool Contains(ItemPrototype const* proto)
         {
             return Consumable::Contains(proto) &&
-                    (proto->SubClass == ITEM_SUBCLASS_FOOD
-#ifdef MANGOSBOT_ZERO
-                    || proto->SubClass == ITEM_SUBCLASS_CONSUMABLE
-#endif
-                    );
-        }
+                    (proto->SubClass == ITEM_SUBCLASS_FOOD);
+        }                    
 
         virtual string GetName() { return "consumables.food"; }
         virtual string GetLabel() { return "food and drink"; }

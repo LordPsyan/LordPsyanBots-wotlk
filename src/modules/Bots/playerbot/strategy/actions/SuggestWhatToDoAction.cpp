@@ -204,8 +204,6 @@ void SuggestWhatToDoAction::grindReputation()
         factions["Everlook"] = 40;
         factions["Gadgetzan"] = 50;
         factions["Ratchet"] = 20;
-
-#ifdef MANGOSBOT_ONE
         factions["Ashtongue Deathsworn"] = 70;
         factions["Cenarion Expedition"] = 62;
         factions["The Consortium"] = 65;
@@ -217,9 +215,6 @@ void SuggestWhatToDoAction::grindReputation()
         factions["Sporeggar"] = 65;
         factions["Tranquillien"] = 10;
         factions["The Violet Eye"] = 70;
-#endif
-
-#ifdef MANGOSBOT_TWO
         factions["Argent Crusade"] = 75;
         factions["Ashen Verdict"] = 75;
         factions["The Kalu'ak"] = 72;
@@ -227,7 +222,6 @@ void SuggestWhatToDoAction::grindReputation()
         factions["Knights of the Ebon Blade"] = 77;
         factions["The Sons of Hodir"] = 78;
         factions["The Wyrmrest Accord"] = 77;
-#endif
     }
 
     vector<string> levels;

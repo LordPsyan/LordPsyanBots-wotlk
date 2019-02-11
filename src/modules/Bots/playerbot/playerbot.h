@@ -26,11 +26,3 @@ int strcmpi(std::string s1, std::string s2);
 #include "RandomPlayerbotMgr.h"
 #include "ChatHelper.h"
 #include "PlayerbotAI.h"
-
-#if MAX_EXPANSION == 1
-    #define MANGOSBOT_ONE
-#elif MAX_EXPANSION == 2
-    #define MANGOSBOT_TWO
-#else
-    #define MANGOSBOT_ZERO
-#endif

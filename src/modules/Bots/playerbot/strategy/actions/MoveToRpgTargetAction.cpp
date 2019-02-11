@@ -43,9 +43,7 @@ bool MoveToRpgTargetAction::Execute(Event event)
 
     bool generatePath = !bot->IsFlying() && !bot->IsUnderwater();
     MotionMaster &mm = *bot->GetMotionMaster();
-#ifdef CMANGOS
     mm.Clear();
-#endif
     mm.MovePoint(mapId, x, y, z, generatePath);
 
     AI_VALUE(LastMovement&, "last movement").Set(x, y, z, bot->GetOrientation());

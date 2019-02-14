@@ -177,11 +177,13 @@ void RandomItemMgr::BuildRandomItemCache()
     QueryResult* results = CharacterDatabase.PQuery("select lvl, type, item from ai_playerbot_rnditem_cache");
     if (results)
     {
+        BarGoLink bar(results->GetRowCount());
         sLog.outString("Loading random item cache");
         int count = 0;
         do
         {
             Field* fields = results->Fetch();
+            bar.step();
             uint32 level = fields[0].GetUInt32();
             uint32 type = fields[1].GetUInt32();
             uint32 itemId = fields[2].GetUInt32();
@@ -507,9 +509,12 @@ void RandomItemMgr::BuildEquipCache()
         sLog.outString("Loading equipment cache for %d classes, %d levels, %d slots, %d quality from %d items",
                 MAX_CLASSES, maxLevel, EQUIPMENT_SLOT_END, ITEM_QUALITY_ARTIFACT, sItemStorage.GetMaxEntry());
         int count = 0;
+        BarGoLink bar(results->GetRowCount());
         do
         {
             Field* fields = results->Fetch();
+            bar.step();
+
             uint32 clazz = fields[0].GetUInt32();
             uint32 level = fields[1].GetUInt32();
             uint32 slot = fields[2].GetUInt32();

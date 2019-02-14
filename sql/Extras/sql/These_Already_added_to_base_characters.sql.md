@@ -1,0 +1,1 @@
+All of these files are already added to the sql/base/characters.sql file. Does not need imported.

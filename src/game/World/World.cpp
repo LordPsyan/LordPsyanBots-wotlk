@@ -1442,7 +1442,6 @@ void World::SetInitialWorldSettings()
 
 #ifdef ENABLE_PLAYERBOTS
     auctionbot.Init();
-    sPlayerbotAIConfig.Initialize();
 #endif
 
     sLog.outString("---------------------------------------");
@@ -1453,6 +1452,10 @@ void World::SetInitialWorldSettings()
     uint32 uStartInterval = WorldTimer::getMSTimeDiff(uStartTime, WorldTimer::getMSTime());
     sLog.outString("SERVER STARTUP TIME: %i minutes %i seconds", uStartInterval / 60000, (uStartInterval % 60000) / 1000);
     sLog.outString();
+
+#ifdef ENABLE_PLAYERBOTS
+    sPlayerbotAIConfig.Initialize();
+#endif
 }
 
 void World::DetectDBCLang()
